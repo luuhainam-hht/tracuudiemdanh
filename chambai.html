@@ -61,6 +61,12 @@ button.sm{width:auto;font-size:14px;padding:8px 12px}
 .prog{height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin:8px 0}
 .prog i{display:block;height:100%;background:var(--teal);width:0;transition:width .2s}
 .file{display:none}
+.teps{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+.tep{display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:10px;padding:8px 10px;background:#fff}
+.tep .ic{font-size:22px}
+.tep .tn{flex:1;min-width:0}.tep .tn b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tep button{width:auto}
+.chon{font-size:13px;color:var(--navy);background:#EFF6FF;border:1px dashed #93C5FD;border-radius:10px;padding:8px 10px;margin-top:6px}
 .viewer{position:fixed;inset:0;background:rgba(2,6,23,.95);z-index:50;display:none;flex-direction:column}
 .viewer.on{display:flex}
 .viewer .bar{display:flex;gap:6px;padding:8px;justify-content:center;flex-wrap:wrap}
@@ -90,7 +96,9 @@ details summary{cursor:pointer;color:var(--blue);font-weight:600;font-size:14px}
 <script>
 // ĐỊA CHỈ API (Apps Script – Ứng dụng web, cùng địa chỉ với web tra cứu chuyên cần)
 const API = 'https://script.google.com/macros/s/AKfycbywZYyrkQaWVjgMGZ6RUCB0dsJN-OsuOFc8gL526m0p3Owbgi2ODNtrxiB7gE0bamzU/exec';
-const ANH_MAX = 1600, ANH_CHATLUONG = 0.82;
+const ANH_MAX = 1600, ANH_CHATLUONG = 0.82, TEP_MAX_MB = 10;
+const CHAP_NHAN = 'image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar';
+const EXT_MIME = { pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', xls: 'application/vnd.ms-excel', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', ppt: 'application/vnd.ms-powerpoint', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', txt: 'text/plain', csv: 'text/csv', zip: 'application/zip', rar: 'application/vnd.rar' };
 
 function $(id) { return document.getElementById(id); }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
@@ -103,6 +111,9 @@ function fmtNgay(ms) { if (!ms) return ''; const d = new Date(ms); return pad(d.
 function toInputDT(ms) { if (!ms) return ''; const d = new Date(ms); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }
 function diemTxt(d) { return (d === '' || d === null || d === undefined) ? '' : Number(d).toLocaleString('vi-VN'); }
 function toast(msg, ms) { const t = $('toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(t._t); t._t = setTimeout(() => t.style.display = 'none', ms || 2500); }
+function attrJ(v) { return JSON.stringify(v).replace(/"/g, '&quot;'); }
+function fmtSize(b) { b = Number(b) || 0; return b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : b >= 1024 ? Math.round(b / 1024) + ' KB' : b + ' B'; }
+function iconTep(mime, ten) { mime = String(mime || ''); const e = String(ten || '').split('.').pop().toLowerCase(); if (/^image\//.test(mime)) return '🖼️'; if (mime === 'application/pdf' || e === 'pdf') return '📕'; if (/excel|spreadsheetml|csv/.test(mime) || /^(xlsx?|csv)$/.test(e)) return '📗'; if (/powerpoint|presentationml/.test(mime) || /^pptx?$/.test(e)) return '📙'; if (/msword|wordprocessingml/.test(mime) || /^docx?$/.test(e)) return '📘'; if (/zip|rar|compressed/.test(mime) || /^(zip|rar)$/.test(e)) return '🗜️'; return '📄'; }
 
 // Gọi API bằng POST (JSON trong body dạng text/plain → không cần preflight CORS)
 async function goi(payload) {
@@ -130,6 +141,40 @@ async function nenAnh(file) {
   const url = c.toDataURL('image/jpeg', ANH_CHATLUONG);
   return { mime: 'image/jpeg', b64: url.split(',')[1], dataUrl: url };
 }
+// Đọc 1 tệp người dùng chọn → {ten, mime, b64}: ảnh thì nén, tài liệu thì giữ nguyên (≤ TEP_MAX_MB)
+async function docTep(file) {
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  const mime = file.type || EXT_MIME[ext] || '';
+  if (/^image\//.test(mime)) { const a = await nenAnh(file); return { ten: file.name.replace(/\.[^.]+$/, '') + '.jpg', mime: 'image/jpeg', b64: a.b64 }; }
+  if (!EXT_MIME[ext]) throw new Error('Không nhận loại tệp "' + file.name + '". Chỉ nhận ảnh, PDF, Word, Excel, PowerPoint, txt, csv, zip, rar.');
+  if (file.size > TEP_MAX_MB * 1024 * 1024) throw new Error('Tệp "' + file.name + '" quá ' + TEP_MAX_MB + ' MB.');
+  const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = () => rej(new Error('Không đọc được ' + file.name)); r.readAsDataURL(file); });
+  return { ten: file.name, mime: EXT_MIME[ext] || mime, b64: b64 };
+}
+// Tải lần lượt từng tệp (mỗi tệp 1 yêu cầu) – cơ sở: {maBai, loai, ten?} + quyền
+async function taiLenTuanTu(files, coSo, pr) {
+  if (pr) { pr.style.display = 'block'; pr.querySelector('i').style.width = '0%'; }
+  for (let k = 0; k < files.length; k++) {
+    if (pr) pr.querySelector('i').style.width = Math.round(k / files.length * 100) + '%';
+    toast('Đang tải ' + (k + 1) + '/' + files.length + ': ' + files[k].name + '…', 30000);
+    const t = await docTep(files[k]);
+    await goi(Object.assign({ act: 'taianh', anh: [t] }, coSo, quyen()));
+  }
+  if (pr) pr.querySelector('i').style.width = '100%';
+}
+// Mở / tải tài liệu (không phải ảnh): lấy qua API rồi mở blob – PDF mở tab mới, loại khác tải về
+async function moTep(id, ten, mime) {
+  const w = mime === 'application/pdf' ? window.open('', '_blank') : null;
+  try {
+    toast('Đang tải ' + ten + '…', 30000);
+    const u = await layAnh(id, 'lon');
+    const blob = await (await fetch(u)).blob();
+    const url = URL.createObjectURL(blob);
+    if (w) w.location = url;
+    else { const a = document.createElement('a'); a.href = url; a.download = ten || 'tep'; document.body.appendChild(a); a.click(); a.remove(); }
+    toast('Đã mở ' + ten);
+  } catch (e) { if (w) w.close(); toast('Lỗi: ' + e.message, 5000); }
+}
 const cacheAnh = {};
 async function layAnh(id, kich) {
   const key = id + '|' + (kich || 'lon');
@@ -144,10 +189,18 @@ function napThumb(el) { // el.dataset.id
   layAnh(id, 'nho').then(u => { el.querySelector('img').src = u; }).catch(e => { el.querySelector('.tt').textContent = 'Lỗi: ' + e.message; });
 }
 function napTatCaThumb() { document.querySelectorAll('.thumb[data-id]:not([data-ok])').forEach(el => { el.dataset.ok = 1; napThumb(el); }); }
-function gridAnh(ids, choXoa, xoaFn) {
-  if (!ids || !ids.length) return '<div class="note">Chưa có ảnh.</div>';
-  return '<div class="grid">' + ids.map((id, i) => '<div class="thumb" data-id="' + esc(id) + '" onclick="xemAnh(' + JSON.stringify(ids).replace(/"/g, '&quot;') + ',' + i + ')"><img alt="ảnh ' + (i + 1) + '"><div class="tt">Ảnh ' + (i + 1) + '</div>' +
-    (choXoa ? '<button class="x" title="Xoá ảnh" onclick="event.stopPropagation();' + xoaFn.replace('%ID%', id) + '">✕</button>' : '') + '</div>').join('') + '</div>';
+function gridAnh(tep, choXoa, xoaFn) { // tep: [{id, ten, mime, size, laAnh}]
+  tep = tep || [];
+  if (!tep.length) return '<div class="note">Chưa có tệp nào.</div>';
+  const anh = tep.filter(t => t.laAnh), tl = tep.filter(t => !t.laAnh);
+  const ids = anh.map(t => t.id);
+  let h = '';
+  if (anh.length) h += '<div class="grid">' + anh.map((t, i) => '<div class="thumb" data-id="' + esc(t.id) + '" onclick="xemAnh(' + attrJ(ids) + ',' + i + ')"><img alt="ảnh ' + (i + 1) + '"><div class="tt">' + esc(t.ten || ('Ảnh ' + (i + 1))) + '</div>' +
+    (choXoa ? '<button class="x" title="Xoá" onclick="event.stopPropagation();' + xoaFn.replace('%ID%', t.id) + '">✕</button>' : '') + '</div>').join('') + '</div>';
+  if (tl.length) h += '<div class="teps">' + tl.map(t => '<div class="tep"><span class="ic">' + iconTep(t.mime, t.ten) + '</span><div class="tn"><b>' + esc(t.ten) + '</b><span class="kv">' + fmtSize(t.size) + '</span></div>' +
+    '<button class="sec sm" onclick="moTep(' + attrJ(t.id) + ',' + attrJ(t.ten) + ',' + attrJ(t.mime) + ')">' + (t.mime === 'application/pdf' ? 'Mở' : 'Tải về') + '</button>' +
+    (choXoa ? '<button class="warn sm" onclick="' + xoaFn.replace('%ID%', t.id) + '">✕</button>' : '') + '</div>').join('') + '</div>';
+  return h;
 }
 
 // ---------- Trình xem ảnh ----------
@@ -231,17 +284,17 @@ function svHien() {
     h += '<div class="card"><div class="top"><div><div style="font-weight:700;font-size:17px;color:var(--navy)">' + esc(b.ten) + '</div><div class="kv">' + esc(b.dauDiem) +
       (b.han ? ' • Hạn nộp: <b>' + fmt(b.han) + '</b>' + (hanQua ? ' (đã qua)' : '') : '') + (b.trangThai !== 'Mở' ? ' • <b>Đã đóng</b>' : '') + '</div></div>' + tt + '</div>';
     if (b.moTa) h += '<div class="debai">' + esc(b.moTa) + '</div>';
-    if (b.anhDe.length) h += '<div class="kv">Ảnh đề bài:</div>' + gridAnh(b.anhDe, false);
+    if (b.tep && b.tep.length) h += '<div class="kv">Tệp đề bài / tài liệu:</div>' + gridAnh(b.tep, false);
     if (n.trangThai === 'Đã chấm') {
       h += '<div class="big">' + diemTxt(n.diem) + '</div><div class="center kv">điểm ' + esc(b.dauDiem) + (n.chamLuc ? ' • chấm lúc ' + fmt(n.chamLuc) : '') + '</div>';
       if (n.nhanXet) h += '<div class="info">💬 Nhận xét của giảng viên: ' + esc(n.nhanXet) + '</div>';
     }
     h += '<div class="kv" style="margin-top:8px">Bài làm của tôi' + (n.nopLuc ? ' (nộp lúc ' + fmt(n.nopLuc) + (n.nguoiTai === 'Giảng viên' ? ', giảng viên tải lên' : '') + ')' : '') + ':</div>';
-    h += gridAnh(n.anh, b.conNop, "svXoaAnh('" + esc(b.ma) + "','%ID%')");
+    h += gridAnh(n.tep, b.conNop, "svXoaAnh('" + esc(b.ma) + "','%ID%')");
     if (b.conNop) {
-      h += '<input class="file" type="file" accept="image/*" multiple id="f' + i + '" onchange="svNop(\'' + esc(b.ma) + '\', this)">' +
-        '<div class="row"><button class="ok" onclick="$(\'f' + i + '\').click()">📷 Chụp / chọn ảnh bài làm để nộp</button></div>' +
-        '<div class="prog" id="p' + i + '" style="display:none"><i></i></div><div class="note">Có thể chọn nhiều ảnh (tối đa ' + b.toiDa + ' ảnh/bài). Ảnh được thu nhỏ tự động trước khi tải. Sau khi giảng viên chấm, bài không sửa được nữa.</div>';
+      h += '<input class="file" type="file" accept="' + CHAP_NHAN + '" multiple id="f' + i + '" onchange="svNop(\'' + esc(b.ma) + '\', this)">' +
+        '<div class="row"><button class="ok" onclick="$(\'f' + i + '\').click()">📷 Chụp / chọn ảnh hoặc tệp bài làm để nộp</button></div>' +
+        '<div class="prog" id="p' + i + '" style="display:none"><i></i></div><div class="note">Nhận ảnh, PDF, Word, Excel, PowerPoint, txt, zip (tối đa ' + b.toiDa + ' tệp/bài, mỗi tệp ≤ ' + (b.toiDaMB || 10) + ' MB). Ảnh được thu nhỏ tự động. Sau khi giảng viên chấm, bài không sửa được nữa.</div>';
     }
     h += '</div>';
   });
@@ -251,22 +304,16 @@ function svHien() {
 }
 async function svNop(maBai, inp) {
   const files = [...inp.files]; if (!files.length) return;
-  const i = inp.id.slice(1); const pr = $('p' + i); pr.style.display = 'block';
+  const pr = $('p' + inp.id.slice(1));
   try {
-    for (let k = 0; k < files.length; k++) {
-      pr.querySelector('i').style.width = Math.round(k / files.length * 100) + '%';
-      toast('Đang tải ảnh ' + (k + 1) + '/' + files.length + '…', 20000);
-      const a = await nenAnh(files[k]);
-      await goi({ act: 'taianh', ma: MA, maBai: maBai, loai: 'bailam', anh: [{ mime: a.mime, b64: a.b64 }] });
-    }
-    pr.querySelector('i').style.width = '100%';
-    toast('Đã nộp ' + files.length + ' ảnh ✅');
+    await taiLenTuanTu(files, { maBai: maBai, loai: 'bailam' }, pr);
+    toast('Đã nộp ' + files.length + ' tệp ✅');
     await svNap();
   } catch (e) { toast('Lỗi: ' + e.message, 6000); pr.style.display = 'none'; inp.value = ''; }
 }
 async function svXoaAnh(maBai, id) {
-  if (!confirm('Xoá ảnh này khỏi bài nộp?')) return;
-  try { await goi({ act: 'xoaanh', ma: MA, maBai: maBai, loai: 'bailam', id: id }); toast('Đã xoá ảnh.'); await svNap(); } catch (e) { toast('Lỗi: ' + e.message, 5000); }
+  if (!confirm('Xoá tệp này khỏi bài nộp?')) return;
+  try { await goi({ act: 'xoaanh', ma: MA, maBai: maBai, loai: 'bailam', id: id }); toast('Đã xoá tệp.'); await svNap(); } catch (e) { toast('Lỗi: ' + e.message, 5000); }
 }
 
 // =====================================================================
@@ -304,26 +351,42 @@ async function gvNapBai() {
     gvKhung(h);
   } catch (e) { gvKhung('<div class="err">' + esc(e.message) + '</div>'); }
 }
+let TEP_MOI = []; // tệp chọn trong form tạo/sửa bài, tải lên khi bấm Lưu
 function gvFormBai(ma) {
   const b = ma ? DS_BAI.find(x => x.ma === ma) : null;
   const dd = GV.dauDiem || ['Kiểm tra 1', 'Kiểm tra 2', 'Kiểm tra 3'];
+  TEP_MOI = [];
   $('form').innerHTML = '<div class="card"><h2>' + (b ? '✏️ Sửa bài kiểm tra' : '➕ Tạo bài kiểm tra – lớp ' + esc(LOP)) + '</h2>' +
     '<label>Tên bài</label><input id="fTen" value="' + esc(b ? b.ten : '') + '" placeholder="VD: Kiểm tra giữa kỳ – HTML/CSS">' +
     '<div class="row"><div><label>Ghi vào đầu điểm</label><select id="fDau">' + dd.map(x => '<option' + (b && b.dauDiem === x ? ' selected' : '') + '>' + esc(x) + '</option>').join('') + '</select></div>' +
     '<div><label>Hạn nộp (để trống = không hạn)</label><input id="fHan" type="datetime-local" value="' + toInputDT(b ? b.han : null) + '"></div></div>' +
-    '<div class="row" style="margin-top:8px"><label style="display:flex;align-items:center;gap:8px;margin:0;font-size:14px;color:var(--text)"><input type="checkbox" id="fNop" style="width:auto"' + (!b || b.choNop ? ' checked' : '') + '> Sinh viên được tự nộp ảnh bài làm</label>' +
+    '<div class="row" style="margin-top:8px"><label style="display:flex;align-items:center;gap:8px;margin:0;font-size:14px;color:var(--text)"><input type="checkbox" id="fNop" style="width:auto"' + (!b || b.choNop ? ' checked' : '') + '> Sinh viên được tự nộp ảnh / tệp bài làm</label>' +
     (b ? '<div class="auto"><label>Trạng thái</label><select id="fTT"><option' + (b.trangThai === 'Mở' ? ' selected' : '') + '>Mở</option><option' + (b.trangThai !== 'Mở' ? ' selected' : '') + '>Đóng</option></select></div>' : '') + '</div>' +
     '<label>Đề bài / hướng dẫn (sinh viên nhìn thấy)</label><textarea id="fMoTa">' + esc(b ? b.moTa : '') + '</textarea>' +
-    (b ? '<label>Ảnh đề bài</label>' + gridAnh(b.anhDe, true, "gvXoaAnh('" + esc(b.ma) + "','debai','','%ID%')") +
-      '<input class="file" type="file" accept="image/*" multiple id="fAnhDe" onchange="gvTaiAnh(\'' + esc(b.ma) + '\',\'debai\',\'\',this)"><button class="sec sm" onclick="$(\'fAnhDe\').click()">📎 Thêm ảnh đề bài</button>' : '') +
-    '<div class="row" style="margin-top:12px"><button onclick="gvLuuBai(' + (b ? "'" + esc(b.ma) + "'" : 'null') + ')">💾 Lưu</button><button class="sec auto" onclick="$(\'form\').innerHTML=\'\'">Huỷ</button></div></div>';
+    '<label>Ảnh đề bài / tài liệu đính kèm (sinh viên xem được)</label>' +
+    (b && b.tep && b.tep.length ? gridAnh(b.tep, true, "gvXoaAnh('" + esc(b.ma) + "','debai','','%ID%')") : '') +
+    '<input class="file" type="file" accept="' + CHAP_NHAN + '" multiple id="fTep" onchange="gvChonTep(this)">' +
+    '<div class="row"><button class="sec sm" onclick="$(\'fTep\').click()">📎 Chọn ảnh / tài liệu (PDF, Word, Excel…)</button></div><div id="fTepDs"></div>' +
+    '<div class="prog" id="pTep" style="display:none"><i></i></div>' +
+    '<div class="row" style="margin-top:12px"><button onclick="gvLuuBai(' + (b ? "'" + esc(b.ma) + "'" : 'null') + ')">💾 Lưu' + (b ? '' : ' & đăng bài') + '</button><button class="sec auto" onclick="$(\'form\').innerHTML=\'\'">Huỷ</button></div></div>';
   napTatCaThumb();
   $('form').scrollIntoView({ behavior: 'smooth' });
+}
+function gvChonTep(inp) {
+  TEP_MOI = TEP_MOI.concat([...inp.files]); inp.value = '';
+  $('fTepDs').innerHTML = TEP_MOI.length ? '<div class="chon">Sẽ tải lên khi bấm Lưu: ' + TEP_MOI.map((f, i) => '<span>' + iconTep(f.type, f.name) + ' ' + esc(f.name) + ' (' + fmtSize(f.size) + ') <a href="#" onclick="TEP_MOI.splice(' + i + ',1);gvChonTep({files:[],value:\'\'});return false" style="color:var(--bad)">✕</a></span>').join(' &nbsp;•&nbsp; ') + '</div>' : '';
 }
 async function gvLuuBai(ma) {
   const han = $('fHan').value ? new Date($('fHan').value).getTime() : null;
   const p = { act: ma ? 'gv_suabai' : 'gv_taobai', pin: PIN, lop: LOP, maBai: ma, ten: $('fTen').value.trim(), dauDiem: $('fDau').value, han: han, choNop: $('fNop').checked, moTa: $('fMoTa').value, trangThai: $('fTT') ? $('fTT').value : 'Mở' };
-  try { await goi(p); toast('Đã lưu bài kiểm tra.'); await gvNapBai(); } catch (e) { toast('Lỗi: ' + e.message, 5000); }
+  try {
+    const r = await goi(p);
+    const maBai = ma || r.ma;
+    if (TEP_MOI.length) { await taiLenTuanTu(TEP_MOI, { maBai: maBai, loai: 'debai' }, $('pTep')); }
+    toast('Đã lưu bài kiểm tra' + (TEP_MOI.length ? ' và ' + TEP_MOI.length + ' tệp đính kèm' : '') + ' ✅');
+    TEP_MOI = [];
+    await gvNapBai();
+  } catch (e) { toast('Lỗi: ' + e.message, 6000); }
 }
 async function gvMoBai(ma) {
   SV_MO = -1; LOC = 'all';
@@ -355,9 +418,9 @@ function gvChiTiet(s, i) {
   const link = s.ma ? (location.origin + location.pathname + '?ma=' + s.ma) : '';
   let h = '<div class="chitiet" onclick="event.stopPropagation()">';
   h += '<div class="kv">Bài làm' + (s.nopLuc ? ' • nộp lúc ' + fmt(s.nopLuc) + (s.nguoiTai ? ' (' + esc(s.nguoiTai) + ')' : '') : '') + ':</div>';
-  h += gridAnh(s.anh, true, "gvXoaAnh('" + esc(BAI.ma) + "','bailam'," + JSON.stringify(s.ten).replace(/"/g, '&quot;') + ",'%ID%')");
-  h += '<input class="file" type="file" accept="image/*" multiple id="fa' + i + '" onchange="gvTaiAnh(\'' + esc(BAI.ma) + '\',\'bailam\',' + JSON.stringify(s.ten).replace(/"/g, '&quot;') + ',this)">' +
-    '<div class="row"><button class="sec sm" onclick="$(\'fa' + i + '\').click()">📷 Tải ảnh hộ sinh viên</button>' + (link ? '<button class="sec sm" onclick="chepLink(' + JSON.stringify(link).replace(/"/g, '&quot;') + ')">🔗 Sao chép link riêng</button>' : '<span class="kv">Chưa có mã riêng – chạy menu 🔑 trong Sheets</span>') + '</div>' +
+  h += gridAnh(s.tep, true, "gvXoaAnh('" + esc(BAI.ma) + "','bailam'," + attrJ(s.ten) + ",'%ID%')");
+  h += '<input class="file" type="file" accept="' + CHAP_NHAN + '" multiple id="fa' + i + '" onchange="gvTaiAnh(\'' + esc(BAI.ma) + '\',\'bailam\',' + attrJ(s.ten) + ',this)">' +
+    '<div class="row"><button class="sec sm" onclick="$(\'fa' + i + '\').click()">📷 Tải ảnh / tệp hộ sinh viên</button>' + (link ? '<button class="sec sm" onclick="chepLink(' + JSON.stringify(link).replace(/"/g, '&quot;') + ')">🔗 Sao chép link riêng</button>' : '<span class="kv">Chưa có mã riêng – chạy menu 🔑 trong Sheets</span>') + '</div>' +
     '<div class="prog" id="pa' + i + '" style="display:none"><i></i></div>';
   h += '<label>Điểm ' + esc(BAI.dauDiem) + ' (0–10)' + (s.diemSo !== '' && s.diem === '' ? ' – <span class="warn badge">sổ điểm đang có ' + diemTxt(s.diemSo) + '</span>' : '') + '</label>' +
     '<div class="diemcell"><input id="d' + i + '" type="number" inputmode="decimal" min="0" max="10" step="0.25" value="' + (s.diem === '' ? '' : s.diem) + '" placeholder="—">' +
@@ -388,23 +451,18 @@ async function gvCham(i, xoa) {
 }
 async function gvTaiAnh(maBai, loai, ten, inp) {
   const files = [...inp.files]; if (!files.length) return;
-  const pr = loai === 'bailam' ? $('pa' + SV_MO) : null; if (pr) pr.style.display = 'block';
+  const pr = loai === 'bailam' ? $('pa' + SV_MO) : null;
   try {
-    for (let k = 0; k < files.length; k++) {
-      if (pr) pr.querySelector('i').style.width = Math.round(k / files.length * 100) + '%';
-      toast('Đang tải ảnh ' + (k + 1) + '/' + files.length + '…', 20000);
-      const a = await nenAnh(files[k]);
-      await goi({ act: 'taianh', pin: PIN, maBai: maBai, loai: loai, ten: ten, anh: [{ mime: a.mime, b64: a.b64 }] });
-    }
-    toast('Đã tải ' + files.length + ' ảnh ✅');
+    await taiLenTuanTu(files, { maBai: maBai, loai: loai, ten: ten }, pr);
+    toast('Đã tải ' + files.length + ' tệp ✅');
     if (loai === 'debai') { await gvNapBai(); gvFormBai(maBai); } else await gvLamMoiSV();
   } catch (e) { toast('Lỗi: ' + e.message, 6000); if (pr) pr.style.display = 'none'; }
 }
 async function gvXoaAnh(maBai, loai, ten, id) {
-  if (!confirm('Xoá ảnh này?')) return;
+  if (!confirm('Xoá tệp này?')) return;
   try {
     await goi({ act: 'xoaanh', pin: PIN, maBai: maBai, loai: loai, ten: ten, id: id });
-    toast('Đã xoá ảnh.');
+    toast('Đã xoá tệp.');
     if (loai === 'debai') { await gvNapBai(); gvFormBai(maBai); } else await gvLamMoiSV();
   } catch (e) { toast('Lỗi: ' + e.message, 5000); }
 }
