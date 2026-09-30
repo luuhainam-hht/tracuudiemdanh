@@ -70,6 +70,25 @@ button.sm{width:auto;font-size:14px;padding:8px 12px}
 .nhap{border:2px solid #14B8A6;border-radius:12px;padding:12px;margin-top:10px;background:#F0FDFA}
 .nhap .nhap-t{font-weight:800;font-size:16px;color:#115E59;margin-bottom:4px}
 .big-btn{font-size:18px;padding:14px 12px;margin-top:8px}
+.q{border:1px solid var(--border);border-radius:12px;padding:12px;margin:10px 0;background:#fff}
+.q .qn{font-weight:700;color:var(--navy);margin-bottom:6px;font-size:15px}
+.q .qh{white-space:pre-wrap;font-size:15px;margin-bottom:6px}
+.opt{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;margin:6px 0;cursor:pointer;background:#fff;font-size:15px}
+.opt:hover{background:#F8FAFC}
+.opt input[type=radio]{width:20px;height:20px;margin:2px 0 0;flex:0 0 auto;accent-color:var(--blue)}
+.opt.on{background:#EFF6FF;border-color:#93C5FD}
+.opt.dung{background:var(--okbg);border-color:#86EFAC}.opt.sai{background:var(--badbg);border-color:#FCA5A5}
+.opt .lt{font-weight:700;color:var(--navy);flex:0 0 auto}
+.opt.ed input[type=text]{flex:1;padding:6px 8px;font-size:14px}
+.tnbar{position:sticky;top:0;z-index:20;background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.tnbar .tm{font-size:24px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums}
+.tnbar .tm.gap{color:var(--bad)}
+.tnbar button{width:auto;white-space:nowrap}
+.qe{border:1px solid var(--border);border-radius:12px;padding:10px;margin:8px 0;background:#F8FAFC}
+.qe textarea{min-height:56px;font-size:14px;margin-bottom:6px}
+.qe .qdiem{width:70px;font-size:14px;padding:6px 8px}
+.stat{display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;border-bottom:1px dashed var(--border)}
+.stat .bar{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden}.stat .bar i{display:block;height:100%;background:var(--teal)}
 .nhap .dsn{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin:8px 0}
 .nhap .it{position:relative;border:1px solid var(--border);border-radius:10px;background:#fff;aspect-ratio:1;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:11px;text-align:center;padding:4px}
 .nhap .it img{width:100%;height:100%;object-fit:cover}
@@ -294,6 +313,7 @@ function svHien() {
       (b.han ? ' • Hạn nộp: <b>' + fmt(b.han) + '</b>' + (hanQua ? ' (đã qua)' : '') : '') + (b.trangThai !== 'Mở' ? ' • <b>Đã đóng</b>' : '') + '</div></div>' + tt + '</div>';
     if (b.moTa) h += '<div class="debai">' + esc(b.moTa) + '</div>';
     if (b.tep && b.tep.length) h += '<div class="kv">Tệp đề bài / tài liệu:</div>' + gridAnh(b.tep, false);
+    if (b.loai === 'tn') { h += svTheTN(b, n, i); h += '</div>'; return; }
     if (n.trangThai === 'Đã chấm') {
       h += '<div class="big">' + diemTxt(n.diem) + '</div><div class="center kv">điểm ' + esc(b.dauDiem) + (n.chamLuc ? ' • chấm lúc ' + fmt(n.chamLuc) : '') + '</div>';
       if (n.nhanXet) h += '<div class="info">💬 Nhận xét của giảng viên: ' + esc(n.nhanXet) + '</div>';
@@ -322,6 +342,95 @@ function svHien() {
   h += '<div class="note center">Chỉ bạn (người có mã) và giảng viên xem được bài này. Thắc mắc liên hệ giảng viên phụ trách.</div>';
   $('app').innerHTML = h;
   napTatCaThumb();
+}
+// ---------- Sinh viên: bài trắc nghiệm ----------
+function svTheTN(b, n, i) {
+  let h = '<div class="kv" style="margin:6px 0">☑️ <b>Trắc nghiệm</b> • ' + b.soCau + ' câu • ' + (b.tnPhut ? b.tnPhut + ' phút' : 'không giới hạn giờ') + ' • chấm tự động, chỉ làm <b>1 lần</b></div>';
+  if (n.trangThai === 'Đã chấm') {
+    h += '<div class="big">' + diemTxt(n.diem) + '</div><div class="center kv">điểm ' + esc(b.dauDiem) + (n.soDung ? ' • đúng <b>' + esc(n.soDung) + '</b> câu' : '') + (n.chamLuc ? ' • nộp lúc ' + fmt(n.nopLuc || n.chamLuc) : '') + '</div>';
+    if (n.nhanXet && !/^Trắc nghiệm:/.test(n.nhanXet)) h += '<div class="info">💬 Nhận xét của giảng viên: ' + esc(n.nhanXet) + '</div>';
+    h += '<div class="note">✅ Đã nộp và chấm tự động. Không làm lại được.</div>';
+  } else if (n.trangThai === 'Đã nộp') {
+    h += '<div class="note">✅ Đã nộp lúc ' + fmt(n.nopLuc) + ', đang chờ giảng viên chấm.</div>';
+  } else if (b.conNop) {
+    const tiep = !!n.batDau;
+    h += '<div class="nhap"><div class="nhap-t">' + (tiep ? '⏱️ BÀI ĐANG LÀM DỞ' : '☑️ LÀM BÀI TRẮC NGHIỆM') + '</div>' +
+      '<div class="kv">' + (tiep ? 'Đồng hồ đã chạy từ ' + fmt(n.batDau) + '. Bấm để tiếp tục, câu đã chọn trên máy này vẫn còn.' : (b.tnPhut ? 'Bấm "Bắt đầu" là đồng hồ ' + b.tnPhut + ' phút chạy ngay, hết giờ bài tự nộp. ' : '') + 'Chỉ được nộp 1 lần – làm xong kiểm tra kỹ rồi mới bấm Nộp.') + '</div>' +
+      '<button class="ok big-btn" onclick="svTnBatDau(\'' + esc(b.ma) + '\')">' + (tiep ? '▶️ Tiếp tục làm bài' : '▶️ Bắt đầu làm bài') + '</button></div>';
+  } else {
+    h += '<div class="note">' + (b.trangThai !== 'Mở' ? 'Bài đã đóng.' : (b.han && SV.bayGio > b.han) ? 'Đã hết hạn làm bài.' : 'Bài chưa mở.') + '</div>';
+  }
+  return h;
+}
+let TN = null, TN_TL = {}, TN_DH = null, TN_HAN = 0;
+function tnKhoa(maBai) { return 'tn_' + MA + '_' + maBai; }
+async function svTnBatDau(maBai) {
+  const b = SV.baiKT.find(x => x.ma === maBai);
+  if (b && !b.nop.batDau && b.tnPhut && !confirm('Bắt đầu làm bài "' + b.ten + '"?\n\nĐồng hồ ' + b.tnPhut + ' phút sẽ chạy ngay. Chỉ được nộp 1 lần.')) return;
+  $('app').innerHTML = '<div class="loading">Đang lấy đề…</div>';
+  try {
+    const d = await goi({ act: 'sv_tn_batdau', ma: MA, maBai: maBai });
+    TN = d; TN.maBai = maBai; TN.ten = b ? b.ten : '';
+    try { TN_TL = JSON.parse(localStorage.getItem(tnKhoa(maBai)) || '{}'); } catch (e) { TN_TL = {}; }
+    TN_HAN = d.conLai === null || d.conLai === undefined ? 0 : Date.now() + d.conLai * 1000;
+    tnVe();
+    if (TN_HAN) { clearInterval(TN_DH); TN_DH = setInterval(tnDongHo, 500); tnDongHo(); }
+    window.onbeforeunload = () => 'Bài đang làm, chưa nộp.';
+  } catch (e) { toast('Lỗi: ' + e.message, 6000); await svNap(); }
+}
+function tnVe() {
+  const d = TN;
+  const daTL = Object.keys(TN_TL).length;
+  let h = '<div class="tnbar"><div><b style="color:var(--navy)">' + esc(d.ten) + '</b><div class="kv">Đã trả lời <span id="tnDem">' + daTL + '</span>/' + d.soCau + ' câu</div></div>' +
+    '<div class="tm' + '" id="tnTm">' + (TN_HAN ? '' : '∞') + '</div><button onclick="tnNop(false)">📤 Nộp bài</button></div>';
+  if (d.moTa) h += '<div class="debai">' + esc(d.moTa) + '</div>';
+  if (d.kieu === 'dapan') h += '<div class="card"><div class="kv">Đề bài (mở ảnh/tệp để xem, chọn đáp án bên dưới):</div>' + gridAnh(d.tep, false) + '</div>';
+  else if (d.tep && d.tep.length) h += '<div class="card"><div class="kv">Tài liệu kèm đề:</div>' + gridAnh(d.tep, false) + '</div>';
+  d.cauHoi.forEach((q, k) => {
+    h += '<div class="q" id="q' + q.stt + '"><div class="qn">Câu ' + (d.kieu === 'dapan' ? q.stt : (k + 1)) + (q.diem !== 1 ? ' <span class="kv">(' + diemTxt(q.diem) + ' điểm)</span>' : '') + '</div>' + (q.hoi ? '<div class="qh">' + esc(q.hoi) + '</div>' : '');
+    q.pa.forEach((o, j) => {
+      const on = TN_TL[q.stt] === o.i;
+      h += '<label class="opt' + (on ? ' on' : '') + '"><input type="radio" name="q' + q.stt + '" value="' + o.i + '"' + (on ? ' checked' : '') + ' onchange="tnChon(' + q.stt + ',' + o.i + ')"><span class="lt">' + 'ABCDEF'[j] + '.</span><span>' + esc(o.t) + '</span></label>';
+    });
+    h += '</div>';
+  });
+  h += '<button class="big-btn" onclick="tnNop(false)">📤 Nộp bài</button><div class="note center">Câu đã chọn được lưu tạm trên máy này. Nộp xong sẽ hiện điểm ngay.</div>';
+  $('app').innerHTML = h;
+  napTatCaThumb();
+  window.scrollTo(0, 0);
+}
+function tnChon(stt, i) {
+  TN_TL[stt] = i;
+  try { localStorage.setItem(tnKhoa(TN.maBai), JSON.stringify(TN_TL)); } catch (e) {}
+  document.querySelectorAll('#q' + stt + ' .opt').forEach(el => el.classList.toggle('on', el.querySelector('input').checked));
+  $('tnDem').textContent = Object.keys(TN_TL).length;
+}
+function tnDongHo() {
+  if (!TN || !TN_HAN) return;
+  const s = Math.max(0, Math.round((TN_HAN - Date.now()) / 1000));
+  const el = $('tnTm'); if (el) { el.textContent = pad(Math.floor(s / 60)) + ':' + pad(s % 60); el.classList.toggle('gap', s < 60); }
+  if (s <= 0) { clearInterval(TN_DH); TN_DH = null; tnNop(true); }
+}
+async function tnNop(tuDong) {
+  if (!TN) return;
+  const chua = TN.soCau - Object.keys(TN_TL).length;
+  if (!tuDong && !confirm('Nộp bài?' + (chua ? '\n\nCòn ' + chua + ' câu chưa chọn.' : '') + '\n\nSau khi nộp KHÔNG sửa được.')) return;
+  clearInterval(TN_DH); TN_DH = null;
+  document.querySelectorAll('button').forEach(b => b.disabled = true);
+  toast(tuDong ? 'Hết giờ – đang nộp bài…' : 'Đang nộp bài…', 30000);
+  try {
+    const r = await goi({ act: 'sv_tn_nop', ma: MA, maBai: TN.maBai, traLoi: TN_TL });
+    try { localStorage.removeItem(tnKhoa(TN.maBai)); } catch (e) {}
+    window.onbeforeunload = null;
+    $('app').innerHTML = '<div class="card center"><h2>✅ Đã nộp bài' + (tuDong ? ' (hết giờ)' : '') + '</h2><div class="big">' + diemTxt(r.diem) + '</div><div class="kv">điểm • đúng <b>' + r.dung + '/' + r.tong + '</b> câu</div>' +
+      '<div class="note">Điểm đã được ghi vào sổ điểm. Mỗi sinh viên chỉ làm 1 lần.</div><button style="margin-top:12px" onclick="svNap()">← Về danh sách bài</button></div>';
+    TN = null; TN_TL = {};
+  } catch (e) {
+    toast('Lỗi: ' + e.message, 8000);
+    document.querySelectorAll('button').forEach(b => b.disabled = false);
+    if (/đã nộp|quá giờ|đã đóng/i.test(e.message)) { window.onbeforeunload = null; TN = null; await svNap(); }
+    else if (TN_HAN) { TN_DH = setInterval(tnDongHo, 500); }
+  }
 }
 const NHAP = {}; // tệp đang chọn (chưa nộp) theo mã bài
 function svChonTep(maBai, inp) {
@@ -397,8 +506,8 @@ async function gvNapBai() {
     if (!DS_BAI.length) h += '<div class="card center note">Lớp này chưa có bài kiểm tra. Bấm "Tạo bài kiểm tra".</div>';
     DS_BAI.forEach(b => {
       const hanQua = b.han && Date.now() > b.han;
-      h += '<div class="bai"><div class="top"><div><div class="t">' + esc(b.ten) + '</div><div class="m">' + esc(b.dauDiem) + (b.han ? ' • hạn ' + fmt(b.han) + (hanQua ? ' (đã qua)' : '') : ' • không đặt hạn') +
-        ' • ' + (b.choNop ? 'SV tự nộp' : 'GV tải ảnh') + '</div><div class="m">Đã nộp <b>' + b.daNop + '</b>/' + b.soSV + ' • đã chấm <b>' + b.daCham + '</b>/' + b.soSV + '</div></div>' +
+      h += '<div class="bai"><div class="top"><div><div class="t">' + (b.loai === 'tn' ? '☑️ ' : '📷 ') + esc(b.ten) + '</div><div class="m">' + esc(b.dauDiem) + (b.han ? ' • hạn ' + fmt(b.han) + (hanQua ? ' (đã qua)' : '') : ' • không đặt hạn') +
+        ' • ' + (b.loai === 'tn' ? 'Trắc nghiệm ' + b.soCau + ' câu' + (b.tnPhut ? ', ' + b.tnPhut + ' phút' : '') : (b.choNop ? 'SV tự nộp' : 'GV tải ảnh')) + '</div><div class="m">Đã nộp <b>' + b.daNop + '</b>/' + b.soSV + ' • đã chấm <b>' + b.daCham + '</b>/' + b.soSV + '</div></div>' +
         '<span class="badge ' + (b.trangThai === 'Mở' ? 'ok' : 'neu') + '">' + esc(b.trangThai) + '</span></div>' +
         '<div class="row" style="margin-top:8px"><button class="sm" onclick="gvMoBai(\'' + esc(b.ma) + '\')">✍️ Chấm bài</button><button class="sec sm auto" onclick="gvFormBai(\'' + esc(b.ma) + '\')">Sửa</button></div></div>';
     });
@@ -414,8 +523,13 @@ function gvFormBai(ma) {
     '<label>Tên bài</label><input id="fTen" value="' + esc(b ? b.ten : '') + '" placeholder="VD: Kiểm tra giữa kỳ – HTML/CSS">' +
     '<div class="row"><div><label>Ghi vào đầu điểm</label><select id="fDau">' + dd.map(x => '<option' + (b && b.dauDiem === x ? ' selected' : '') + '>' + esc(x) + '</option>').join('') + '</select></div>' +
     '<div><label>Hạn nộp (để trống = không hạn)</label><input id="fHan" type="datetime-local" value="' + toInputDT(b ? b.han : null) + '"></div></div>' +
-    '<div class="row" style="margin-top:8px"><label style="display:flex;align-items:center;gap:8px;margin:0;font-size:14px;color:var(--text)"><input type="checkbox" id="fNop" style="width:auto"' + (!b || b.choNop ? ' checked' : '') + '> Sinh viên được tự nộp ảnh / tệp bài làm</label>' +
+    '<div class="row"><div><label>Loại bài</label><select id="fLoai" onchange="gvDoiLoai()"' + (b ? ' disabled' : '') + '><option value="tep"' + (!b || b.loai !== 'tn' ? ' selected' : '') + '>📷 Sinh viên chụp ảnh / nộp tệp – giảng viên chấm</option><option value="tn"' + (b && b.loai === 'tn' ? ' selected' : '') + '>☑️ Trắc nghiệm – web chấm tự động</option></select></div>' +
     (b ? '<div class="auto"><label>Trạng thái</label><select id="fTT"><option' + (b.trangThai === 'Mở' ? ' selected' : '') + '>Mở</option><option' + (b.trangThai !== 'Mở' ? ' selected' : '') + '>Đóng</option></select></div>' : '') + '</div>' +
+    '<div id="fKhuTep"><div class="row" style="margin-top:8px"><label style="display:flex;align-items:center;gap:8px;margin:0;font-size:14px;color:var(--text)"><input type="checkbox" id="fNop" style="width:auto"' + (!b || b.choNop ? ' checked' : '') + '> Sinh viên được tự nộp ảnh / tệp bài làm</label></div></div>' +
+    '<div id="fKhuTN" style="display:none"><div class="row"><div><label>Thời gian làm bài (phút; 0 = không giới hạn)</label><input id="fPhut" type="number" min="0" max="600" inputmode="numeric" value="' + (b && b.loai === 'tn' ? b.tnPhut : 15) + '"></div>' +
+    '<div><label>Kiểu đề</label><select id="fKieu" onchange="gvDoiKieu()"><option value="web"' + (!b || b.tnKieu !== 'dapan' ? ' selected' : '') + '>Câu hỏi hiện trên web</option><option value="dapan"' + (b && b.tnKieu === 'dapan' ? ' selected' : '') + '>Đề ở ảnh/tệp đính kèm – chỉ nhập đáp án</option></select></div></div>' +
+    '<label style="display:flex;align-items:center;gap:8px;margin:8px 0 0;font-size:14px;color:var(--text)"><input type="checkbox" id="fXao" style="width:auto"' + (!b || b.tnXao !== false ? ' checked' : '') + '> Xáo trộn thứ tự câu và phương án cho từng sinh viên (chỉ áp dụng kiểu "câu hỏi trên web")</label>' +
+    '<div id="fCau"></div></div>' +
     '<label>Đề bài / hướng dẫn (sinh viên nhìn thấy)</label><textarea id="fMoTa">' + esc(b ? b.moTa : '') + '</textarea>' +
     '<label>Ảnh đề bài / tài liệu đính kèm (sinh viên xem được)</label>' +
     (b && b.tep && b.tep.length ? gridAnh(b.tep, true, "gvXoaAnh('" + esc(b.ma) + "','debai','','%ID%')") : '') +
@@ -424,7 +538,128 @@ function gvFormBai(ma) {
     '<div class="prog" id="pTep" style="display:none"><i></i></div>' +
     '<div class="row" style="margin-top:12px"><button onclick="gvLuuBai(' + (b ? "'" + esc(b.ma) + "'" : 'null') + ')">💾 Lưu' + (b ? '' : ' & đăng bài') + '</button><button class="sec auto" onclick="$(\'form\').innerHTML=\'\'">Huỷ</button></div></div>';
   napTatCaThumb();
+  TN_CAU = [];
+  if (b && b.loai === 'tn') { gvDoiLoai(); gvNapCauHoi(b.ma); } else gvDoiLoai();
   $('form').scrollIntoView({ behavior: 'smooth' });
+}
+// ---- Soạn đề trắc nghiệm ----
+let TN_CAU = []; // [{hoi, pa:[...], dung:'B', diem:1}]
+function gvDoiLoai() {
+  const tn = $('fLoai').value === 'tn';
+  $('fKhuTep').style.display = tn ? 'none' : '';
+  $('fKhuTN').style.display = tn ? '' : 'none';
+  if (tn) gvVeCauHoi();
+}
+function gvDoiKieu() { gvDocCauHoi(); gvVeCauHoi(); }
+async function gvNapCauHoi(ma) {
+  try { const d = await goi({ act: 'gv_cauhoi', pin: PIN, maBai: ma }); TN_CAU = d.cauHoi.map(q => ({ hoi: q.hoi, pa: q.pa.slice(), dung: q.dung, diem: q.diem })); gvVeCauHoi(); }
+  catch (e) { toast('Không tải được câu hỏi: ' + e.message, 5000); }
+}
+function gvVeCauHoi() {
+  const kieu = $('fKieu').value;
+  const tong = TN_CAU.reduce((t, q) => t + (Number(q.diem) || 0), 0);
+  let h = '<div class="card" style="background:#F0FDFA;border-color:#99F6E4"><h2>☑️ Câu hỏi & đáp án <span class="kv">(' + TN_CAU.length + ' câu, tổng ' + diemTxt(tong) + ' điểm → quy về thang 10)</span></h2>';
+  if (kieu === 'web') {
+    h += '<details' + (TN_CAU.length ? '' : ' open') + '><summary>📋 Dán đề từ Word / văn bản để tách câu tự động</summary>' +
+      '<div class="kv" style="margin:6px 0">Mỗi câu: dòng <b>1.</b> hoặc <b>Câu 1:</b> nội dung, các dòng <b>A.</b> <b>B.</b> <b>C.</b> <b>D.</b> phương án, rồi dòng <b>Đáp án: B</b> (hoặc đánh dấu * trước phương án đúng). Ghi <b>(2 điểm)</b> sau câu hỏi nếu câu đó nhiều điểm.</div>' +
+      '<textarea id="fDan" style="min-height:120px" placeholder="1. HTML là viết tắt của?\nA. Hyper Text Markup Language\nB. Home Tool Markup Language\nC. Hyperlinks Text Mark Language\nD. Hyper Tool Multi Language\nĐáp án: A\n\n2. (2 điểm) Thẻ nào tạo liên kết?\nA. <a>\n*B. <link>\n..."></textarea>' +
+      '<div class="row"><button class="sec sm" onclick="gvTachDe(false)">➕ Tách & thêm vào danh sách</button><button class="sec sm" onclick="gvTachDe(true)">♻️ Tách & thay toàn bộ</button></div></details>';
+    TN_CAU.forEach((q, i) => {
+      h += '<div class="qe" id="qe' + i + '"><div class="row"><b style="color:var(--navy)">Câu ' + (i + 1) + '</b><span class="auto kv">Điểm <input class="qdiem" id="qd' + i + '" value="' + esc(q.diem) + '" inputmode="decimal"></span><button class="warn sm auto" onclick="gvXoaCau(' + i + ')">✕ Xoá</button></div>' +
+        '<textarea id="qh' + i + '" placeholder="Nội dung câu hỏi">' + esc(q.hoi) + '</textarea>';
+      q.pa.forEach((t, k) => {
+        h += '<label class="opt ed' + (q.dung === 'ABCDEF'[k] ? ' dung' : '') + '"><input type="radio" name="qd_' + i + '" value="' + 'ABCDEF'[k] + '"' + (q.dung === 'ABCDEF'[k] ? ' checked' : '') + ' onchange="TN_CAU[' + i + '].dung=this.value;gvDocCauHoi();gvVeCauHoi()" title="Chọn làm đáp án đúng"><span class="lt">' + 'ABCDEF'[k] + '.</span><input type="text" id="qp' + i + '_' + k + '" value="' + esc(t) + '" placeholder="Phương án ' + 'ABCDEF'[k] + '">' + (k >= 2 ? '<button class="warn sm" onclick="gvXoaPA(' + i + ',' + k + ')">✕</button>' : '') + '</label>';
+      });
+      h += '<div class="row">' + (q.pa.length < 6 ? '<button class="sec sm auto" onclick="gvThemPA(' + i + ')">+ Thêm phương án</button>' : '') + '<span class="kv">Bấm nút tròn trước phương án để chọn đáp án đúng' + (q.dung ? ' (đang chọn: <b>' + q.dung + '</b>)' : ' – <b style="color:var(--bad)">chưa chọn</b>') + '</span></div></div>';
+    });
+    h += '<button class="sec" onclick="gvThemCau()">➕ Thêm câu hỏi</button>';
+  } else {
+    h += '<div class="kv">Sinh viên xem đề ở ảnh/tệp đính kèm bên dưới rồi chọn A/B/C/D theo số câu. Nhập số câu, số phương án, rồi đáp án đúng từng câu.</div>' +
+      '<div class="row"><div><label>Số câu</label><input id="fSoCau" type="number" min="1" max="200" inputmode="numeric" value="' + (TN_CAU.length || 20) + '"></div><div><label>Số phương án mỗi câu</label><select id="fSoPA">' + [2, 3, 4, 5, 6].map(n => '<option' + ((TN_CAU[0] ? TN_CAU[0].pa.length : 4) === n ? ' selected' : '') + '>' + n + '</option>').join('') + '</select></div>' +
+      '<div class="auto" style="align-self:flex-end"><button class="sec sm" onclick="gvTaoBangDapAn()">Tạo bảng</button></div></div>' +
+      '<label>Nhập nhanh đáp án (VD: <b>1B 2C 3A</b> hoặc <b>BCADDA…</b>) rồi bấm Áp dụng</label><div class="row"><input id="fNhanh" placeholder="1B 2C 3A 4D…"><button class="sec sm auto" onclick="gvApDapAnNhanh()">Áp dụng</button></div>';
+    if (TN_CAU.length) {
+      h += '<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">' + TN_CAU.map((q, i) => '<div class="row" style="border:1px solid var(--border);border-radius:10px;padding:6px 8px;background:#fff;flex-wrap:nowrap"><b style="flex:0 0 auto;color:var(--navy)">' + (i + 1) + '.</b><select id="qa' + i + '" style="padding:6px 4px"><option value="">?</option>' + q.pa.map((_, k) => '<option' + (q.dung === 'ABCDEF'[k] ? ' selected' : '') + '>' + 'ABCDEF'[k] + '</option>').join('') + '</select><input class="qdiem" id="qd' + i + '" value="' + esc(q.diem) + '" title="Điểm câu này" inputmode="decimal" style="width:56px"></div>').join('') + '</div>';
+    }
+  }
+  h += '</div>';
+  $('fCau').innerHTML = h;
+}
+// Đọc giá trị đang gõ trong form vào TN_CAU (gọi trước khi vẽ lại hoặc lưu)
+function gvDocCauHoi() {
+  const kieu = $('fKieu') ? $('fKieu').value : 'web';
+  TN_CAU.forEach((q, i) => {
+    const d = $('qd' + i); if (d) q.diem = d.value.trim().replace(',', '.') || 1;
+    if (kieu === 'web') {
+      const hh = $('qh' + i); if (hh) q.hoi = hh.value;
+      q.pa = q.pa.map((t, k) => { const e = $('qp' + i + '_' + k); return e ? e.value : t; });
+      const r = document.querySelector('input[name="qd_' + i + '"]:checked'); if (r) q.dung = r.value;
+    } else { const a = $('qa' + i); if (a) q.dung = a.value; }
+  });
+  return TN_CAU;
+}
+function gvThemCau() { gvDocCauHoi(); TN_CAU.push({ hoi: '', pa: ['', '', '', ''], dung: '', diem: 1 }); gvVeCauHoi(); const el = $('qh' + (TN_CAU.length - 1)); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.focus(); } }
+function gvXoaCau(i) { gvDocCauHoi(); TN_CAU.splice(i, 1); gvVeCauHoi(); }
+function gvThemPA(i) { gvDocCauHoi(); if (TN_CAU[i].pa.length < 6) TN_CAU[i].pa.push(''); gvVeCauHoi(); }
+function gvXoaPA(i, k) { gvDocCauHoi(); const q = TN_CAU[i]; q.pa.splice(k, 1); if (q.dung && 'ABCDEF'.indexOf(q.dung) >= q.pa.length) q.dung = ''; gvVeCauHoi(); }
+function gvTaoBangDapAn() {
+  gvDocCauHoi();
+  const n = Math.max(1, Math.min(200, Number($('fSoCau').value) || 20)), m = Number($('fSoPA').value) || 4;
+  const cu = TN_CAU;
+  TN_CAU = [];
+  for (let i = 0; i < n; i++) { const pa = []; for (let k = 0; k < m; k++) pa.push(''); TN_CAU.push({ hoi: '', pa: pa, dung: cu[i] && 'ABCDEF'.indexOf(cu[i].dung) < m ? cu[i].dung : '', diem: cu[i] ? cu[i].diem : 1 }); }
+  gvVeCauHoi();
+}
+function gvApDapAnNhanh() {
+  gvDocCauHoi();
+  const t = ($('fNhanh').value || '').toUpperCase();
+  let ds = [];
+  const cap = [...t.matchAll(/(\d+)\s*[\.\-:)]?\s*([A-F])\b/g)];
+  if (cap.length) cap.forEach(m => { ds[Number(m[1]) - 1] = m[2]; });
+  else ds = t.replace(/[^A-F]/g, '').split('');
+  if (!TN_CAU.length) { $('fSoCau').value = ds.length || 20; gvTaoBangDapAn(); }
+  ds.forEach((c, i) => { if (TN_CAU[i] && c && 'ABCDEF'.indexOf(c) < TN_CAU[i].pa.length) TN_CAU[i].dung = c; });
+  gvVeCauHoi();
+  toast('Đã áp dụng ' + ds.filter(Boolean).length + ' đáp án.');
+}
+// Tách đề dán từ văn bản → [{hoi, pa, dung, diem}]
+function tachDe(text) {
+  const out = []; let cur = null;
+  const dong = [];
+  String(text || '').split(/\r?\n/).forEach(l => { // một dòng chứa nhiều phương án "A. x B. y" → tách ra
+    const t = l.trim(); if (!t) return;
+    const parts = t.split(/\s+(?=\*?[A-Fa-f][\.\)]\s)/);
+    parts.forEach(x => dong.push(x));
+  });
+  dong.forEach(t => {
+    let m;
+    if ((m = t.match(/^(?:câu|cau|question|q)?\s*(\d+)\s*(\([^)]*\))?\s*[\.\):\-]\s*(.*)$/i))) {
+      cur = { hoi: ((m[2] || '') + ' ' + m[3]).trim(), pa: [], dung: '', diem: 1 };
+      const md = cur.hoi.match(/\(\s*(\d+(?:[.,]\d+)?)\s*(?:đ|điểm|diem|pts?)\s*\)/i); if (md) { cur.diem = Number(md[1].replace(',', '.')); cur.hoi = cur.hoi.replace(md[0], '').trim(); }
+      out.push(cur); return;
+    }
+    if (cur && (m = t.match(/^(\*?)\s*([A-Fa-f])\s*[\.\):\-]\s*(.*)$/))) {
+      let txt = m[3].trim(); let dung = m[1] === '*';
+      if (/\*$/.test(txt) || /\((?:đúng|dung|correct)\)$/i.test(txt)) { dung = true; txt = txt.replace(/\*$/, '').replace(/\((?:đúng|dung|correct)\)$/i, '').trim(); }
+      const k = m[2].toUpperCase().charCodeAt(0) - 65;
+      while (cur.pa.length < k) cur.pa.push('');
+      cur.pa[k] = txt; if (dung) cur.dung = 'ABCDEF'[k]; return;
+    }
+    if (cur && (m = t.match(/^(?:đáp án|dap an|đa|answer|key)\s*[:\-]?\s*([A-Fa-f])\b/i))) { cur.dung = m[1].toUpperCase(); return; }
+    if (cur && (m = t.match(/^\(?\s*(\d+(?:[.,]\d+)?)\s*(?:đ|điểm|diem|pts?)\s*\)?$/i))) { cur.diem = Number(m[1].replace(',', '.')); return; }
+    if (cur) { if (cur.pa.length) cur.pa[cur.pa.length - 1] += ' ' + t; else cur.hoi += (cur.hoi ? '\n' : '') + t; }
+  });
+  return out.map(q => { while (q.pa.length < 2) q.pa.push(''); return q; });
+}
+function gvTachDe(thay) {
+  gvDocCauHoi();
+  const ds = tachDe($('fDan').value);
+  if (!ds.length) { toast('Không tách được câu nào – kiểm tra định dạng (1. / A. / Đáp án: B).', 5000); return; }
+  TN_CAU = thay ? ds : TN_CAU.concat(ds);
+  $('fDan').value = '';
+  gvVeCauHoi();
+  const thieu = ds.filter(q => !q.dung).length;
+  toast('Đã tách ' + ds.length + ' câu' + (thieu ? ' – ' + thieu + ' câu chưa có đáp án, chọn thêm bên dưới' : '') + '.', 5000);
 }
 function gvChonTep(inp) {
   TEP_MOI = TEP_MOI.concat([...inp.files]); inp.value = '';
@@ -433,6 +668,15 @@ function gvChonTep(inp) {
 async function gvLuuBai(ma) {
   const han = $('fHan').value ? new Date($('fHan').value).getTime() : null;
   const p = { act: ma ? 'gv_suabai' : 'gv_taobai', pin: PIN, lop: LOP, maBai: ma, ten: $('fTen').value.trim(), dauDiem: $('fDau').value, han: han, choNop: $('fNop').checked, moTa: $('fMoTa').value, trangThai: $('fTT') ? $('fTT').value : 'Mở' };
+  if ($('fLoai').value === 'tn') {
+    gvDocCauHoi();
+    p.loai = 'tn'; p.tnPhut = Number($('fPhut').value) || 0; p.tnXao = $('fXao').checked; p.tnKieu = $('fKieu').value; p.choNop = true;
+    p.cauHoi = TN_CAU.map(q => ({ hoi: q.hoi, pa: q.pa, dung: q.dung, diem: q.diem, soPA: q.pa.length }));
+    if (!p.cauHoi.length) { toast('Bài trắc nghiệm chưa có câu hỏi nào.', 5000); return; }
+    const thieu = p.cauHoi.map((q, i) => (!q.dung ? i + 1 : 0)).filter(Boolean);
+    if (thieu.length) { toast('Chưa chọn đáp án đúng cho câu: ' + thieu.slice(0, 10).join(', ') + (thieu.length > 10 ? '…' : ''), 7000); return; }
+    if (p.tnKieu === 'web') { const trong = p.cauHoi.map((q, i) => (!q.hoi.trim() || !q.pa[0].trim() || !q.pa[1].trim() ? i + 1 : 0)).filter(Boolean); if (trong.length) { toast('Câu ' + trong.slice(0, 10).join(', ') + ': thiếu nội dung câu hỏi hoặc phương án A/B.', 7000); return; } }
+  } else p.loai = 'tep';
   try {
     const r = await goi(p);
     const maBai = ma || r.ma;
@@ -447,20 +691,33 @@ async function gvMoBai(ma) {
   gvKhung('<div class="loading">Đang tải danh sách…</div>');
   try {
     const d = await goi({ act: 'gv_bainop', pin: PIN, maBai: ma });
-    BAI = d.bai; DS_SV = d.sv; gvHienCham();
+    BAI = d.bai; DS_SV = d.sv; TN_GV = d.cauHoi || null; gvHienCham();
   } catch (e) { gvKhung('<div class="err">' + esc(e.message) + '</div>'); }
+}
+let TN_GV = null, TN_TK_MO = false; // câu hỏi + thống kê (bài trắc nghiệm) cho giảng viên
+function gvThongKeTN() {
+  if (!TN_GV || !TN_GV.length) return '';
+  const daNop = DS_SV.filter(s => s.traLoi).length;
+  let h = '<details style="margin:8px 0" ontoggle="TN_TK_MO=this.open"' + (TN_TK_MO ? ' open' : '') + '><summary>📊 Thống kê từng câu (' + daNop + ' bài đã nộp) • đáp án</summary>';
+  TN_GV.forEach((q, k) => { const pt = q.lamSo ? Math.round(q.dungSo / q.lamSo * 100) : 0; h += '<div class="stat"><b style="width:52px">Câu ' + (k + 1) + '</b><span class="badge ok" style="padding:2px 8px">' + esc(q.dung) + '</span><div class="bar"><i style="width:' + pt + '%"></i></div><span style="width:110px;text-align:right">' + q.dungSo + '/' + q.lamSo + ' đúng (' + pt + '%)</span></div>' + (q.hoi ? '<div class="kv" style="padding:0 0 4px 52px">' + esc(q.hoi.length > 140 ? q.hoi.slice(0, 140) + '…' : q.hoi) + '</div>' : ''); });
+  h += '<div class="row" style="margin-top:8px"><button class="sec sm auto" onclick="gvChamLai()">🔄 Chấm lại tất cả theo đáp án hiện tại</button><span class="kv">Dùng sau khi sửa đáp án (trên web hoặc sheet CÂU HỎI TN).</span></div></details>';
+  return h;
+}
+async function gvChamLai() {
+  if (!confirm('Chấm lại toàn bộ bài đã nộp theo đáp án hiện tại? Điểm trong sổ sẽ được ghi đè.')) return;
+  try { const r = await goi({ act: 'gv_chamlai', pin: PIN, maBai: BAI.ma }); toast('Đã chấm lại ' + r.so + ' bài ✅'); await gvLamMoiSV(); } catch (e) { toast('Lỗi: ' + e.message, 6000); }
 }
 function gvHienCham() {
   const b = BAI;
   const dem = { all: DS_SV.length, chua: DS_SV.filter(s => s.trangThai === 'Chưa nộp').length, nop: DS_SV.filter(s => s.trangThai === 'Đã nộp').length, cham: DS_SV.filter(s => s.trangThai === 'Đã chấm').length };
   let h = '<div class="card"><div class="hd"><button class="sec sm" onclick="gvNapBai()" style="white-space:nowrap">← Bài</button><div><b style="color:var(--navy)">' + esc(b.ten) + '</b><div class="kv">' + esc(b.lop) + ' • ' + esc(b.dauDiem) + (b.han ? ' • hạn ' + fmt(b.han) : '') + '</div></div></div>' +
-    '<div class="chips">' + [['all', 'Tất cả'], ['chua', 'Chưa nộp'], ['nop', 'Đã nộp – chờ chấm'], ['cham', 'Đã chấm']].map(x => '<button class="chip' + (LOC === x[0] ? ' on' : '') + '" onclick="LOC=\'' + x[0] + '\';SV_MO=-1;gvHienCham()">' + x[1] + ' (' + dem[x[0]] + ')</button>').join('') + '</div>';
+    '<div class="chips">' + [['all', 'Tất cả'], ['chua', 'Chưa nộp'], ['nop', 'Đã nộp – chờ chấm'], ['cham', 'Đã chấm']].map(x => '<button class="chip' + (LOC === x[0] ? ' on' : '') + '" onclick="LOC=\'' + x[0] + '\';SV_MO=-1;gvHienCham()">' + x[1] + ' (' + dem[x[0]] + ')</button>').join('') + '</div>' + gvThongKeTN();
   const ds = DS_SV.map((s, i) => ({ s, i })).filter(x => LOC === 'all' || (LOC === 'chua' && x.s.trangThai === 'Chưa nộp') || (LOC === 'nop' && x.s.trangThai === 'Đã nộp') || (LOC === 'cham' && x.s.trangThai === 'Đã chấm'));
   if (!ds.length) h += '<div class="note center">Không có sinh viên nào trong nhóm này.</div>';
   ds.forEach(x => {
     const s = x.s, i = x.i;
-    const cls = s.trangThai === 'Đã chấm' ? 'ok' : s.trangThai === 'Đã nộp' ? 'teal' : 'neu';
-    h += '<div class="sv' + (SV_MO === i ? ' on' : '') + '" onclick="gvMoSV(' + i + ')"><div class="stt">' + esc(s.stt || '') + '</div><div class="n">' + esc(s.ten) + (s.anh.length ? ' <span class="kv">📷' + s.anh.length + '</span>' : '') + '</div><span class="badge ' + cls + '">' + esc(s.trangThai) + '</span><div class="d">' + diemTxt(s.diem !== '' ? s.diem : s.diemSo) + '</div></div>';
+    const cls = s.trangThai === 'Đã chấm' ? 'ok' : s.trangThai === 'Đã nộp' ? 'teal' : s.trangThai === 'Đang làm' ? 'warn' : 'neu';
+    h += '<div class="sv' + (SV_MO === i ? ' on' : '') + '" onclick="gvMoSV(' + i + ')"><div class="stt">' + esc(s.stt || '') + '</div><div class="n">' + esc(s.ten) + (s.anh.length ? ' <span class="kv">📷' + s.anh.length + '</span>' : '') + (s.soDung ? ' <span class="kv">☑️ ' + esc(s.soDung) + '</span>' : '') + '</div><span class="badge ' + cls + '">' + esc(s.trangThai) + '</span><div class="d">' + diemTxt(s.diem !== '' ? s.diem : s.diemSo) + '</div></div>';
     if (SV_MO === i) h += gvChiTiet(s, i);
   });
   h += '</div>';
@@ -471,17 +728,27 @@ function gvHienCham() {
 function gvChiTiet(s, i) {
   const link = s.ma ? (location.origin + location.pathname + '?ma=' + s.ma) : '';
   let h = '<div class="chitiet" onclick="event.stopPropagation()">';
+  if (BAI.loai === 'tn') {
+    if (s.traLoi && TN_GV) {
+      const tl = {}; s.traLoi.split(',').forEach(x => { const p = x.split(':'); tl[p[0]] = p[1]; });
+      h += '<div class="kv">Bài làm trắc nghiệm • nộp lúc ' + fmt(s.nopLuc) + (s.batDau ? ' • bắt đầu ' + fmt(s.batDau) : '') + ' • đúng <b>' + esc(s.soDung) + '</b>:</div><div class="chips">' +
+        TN_GV.map((q, k) => { const c = tl[q.stt]; const ok = c === q.dung; return '<span class="badge ' + (c === '-' || !c ? 'neu' : ok ? 'ok' : 'bad') + '" title="' + esc(q.hoi) + '">' + (k + 1) + ': ' + (c && c !== '-' ? c : '–') + (ok ? ' ✓' : ' (' + esc(q.dung) + ')') + '</span>'; }).join('') + '</div>';
+    } else h += '<div class="note">' + (s.trangThai === 'Đang làm' ? '⏱️ Đang làm bài (bắt đầu ' + fmt(s.batDau) + '), chưa nộp.' : 'Chưa làm bài trắc nghiệm.') + '</div>';
+    if (s.tep && s.tep.length) h += gridAnh(s.tep, true, "gvXoaAnh('" + esc(BAI.ma) + "','bailam'," + attrJ(s.ten) + ",'%ID%')");
+  } else {
   h += '<div class="kv">Bài làm' + (s.nopLuc ? ' • nộp lúc ' + fmt(s.nopLuc) + (s.nguoiTai ? ' (' + esc(s.nguoiTai) + ')' : '') : '') + ':</div>';
   h += gridAnh(s.tep, true, "gvXoaAnh('" + esc(BAI.ma) + "','bailam'," + attrJ(s.ten) + ",'%ID%')");
   h += '<input class="file" type="file" accept="' + CHAP_NHAN + '" multiple id="fa' + i + '" onchange="gvTaiAnh(\'' + esc(BAI.ma) + '\',\'bailam\',' + attrJ(s.ten) + ',this)">' +
     '<div class="row"><button class="sec sm" onclick="$(\'fa' + i + '\').click()">📷 Tải ảnh / tệp hộ sinh viên</button>' + (link ? '<button class="sec sm" onclick="chepLink(' + JSON.stringify(link).replace(/"/g, '&quot;') + ')">🔗 Sao chép link riêng</button>' : '<span class="kv">Chưa có mã riêng – chạy menu 🔑 trong Sheets</span>') + '</div>' +
     '<div class="prog" id="pa' + i + '" style="display:none"><i></i></div>';
+  }
+  if (BAI.loai === 'tn' && link) h += '<div class="row"><button class="sec sm auto" onclick="chepLink(' + JSON.stringify(link).replace(/"/g, '&quot;') + ')">🔗 Sao chép link riêng</button></div>';
   h += '<label>Điểm ' + esc(BAI.dauDiem) + ' (0–10)' + (s.diemSo !== '' && s.diem === '' ? ' – <span class="warn badge">sổ điểm đang có ' + diemTxt(s.diemSo) + '</span>' : '') + '</label>' +
     '<div class="diemcell"><input id="d' + i + '" type="number" inputmode="decimal" min="0" max="10" step="0.25" value="' + (s.diem === '' ? '' : s.diem) + '" placeholder="—">' +
     '<div class="chips" style="margin:0">' + [10, 9, 8, 7, 6, 5].map(v => '<button class="chip" onclick="$(\'d' + i + '\').value=' + v + '">' + v + '</button>').join('') + '</div></div>' +
     '<label>Nhận xét (sinh viên nhìn thấy)</label><textarea id="nx' + i + '" placeholder="VD: Câu 2 sai công thức; trình bày tốt.">' + esc(s.nhanXet) + '</textarea>' +
     '<div class="row" style="margin-top:10px"><button onclick="gvCham(' + i + ', false)">💾 Lưu điểm' + (gvTiep(i) >= 0 ? ' & sang bài tiếp' : '') + '</button>' +
-    (s.diem !== '' ? '<button class="warn auto sm" onclick="gvCham(' + i + ', true)">Xoá điểm</button>' : '') + '</div>' +
+    (s.diem !== '' ? '<button class="warn auto sm" onclick="gvCham(' + i + ', true)">Xoá điểm' + (BAI.loai === 'tn' ? ' (cho làm lại)' : '') + '</button>' : '') + '</div>' +
     (s.chamLuc ? '<div class="note">Chấm lúc ' + fmt(s.chamLuc) + '. Điểm đã ghi vào sổ điểm (sheet ĐIỂM / HÔM NAY / web tra cứu).</div>' : '') + '</div>';
   return h;
 }
@@ -497,6 +764,7 @@ async function gvCham(i, xoa) {
     const r = await goi({ act: 'gv_cham', pin: PIN, maBai: BAI.ma, ten: s.ten, diem: diem, nhanXet: nx });
     s.diem = diem === '' ? '' : Number(diem); s.nhanXet = nx; s.chamLuc = diem === '' ? null : r.chamLuc; s.diemSo = s.diem;
     s.trangThai = s.diem !== '' ? 'Đã chấm' : (s.anh.length ? 'Đã nộp' : 'Chưa nộp');
+    if (xoa && BAI.loai === 'tn') { s.traLoi = ''; s.soDung = ''; s.batDau = null; }
     toast(xoa ? 'Đã xoá điểm.' : 'Đã lưu ' + diemTxt(s.diem) + ' điểm cho ' + s.ten + ' ✅');
     const t = xoa ? -1 : gvTiep(i);
     SV_MO = t >= 0 ? t : (xoa ? i : -1);
