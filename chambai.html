@@ -67,7 +67,9 @@ button.sm{width:auto;font-size:14px;padding:8px 12px}
 .tep .tn{flex:1;min-width:0}.tep .tn b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tep button{width:auto}
 .chon{font-size:13px;color:var(--navy);background:#EFF6FF;border:1px dashed #93C5FD;border-radius:10px;padding:8px 10px;margin-top:6px}
-.nhap{border:2px dashed #14B8A6;border-radius:12px;padding:10px;margin-top:8px;background:#F0FDFA}
+.nhap{border:2px solid #14B8A6;border-radius:12px;padding:12px;margin-top:10px;background:#F0FDFA}
+.nhap .nhap-t{font-weight:800;font-size:16px;color:#115E59;margin-bottom:4px}
+.big-btn{font-size:18px;padding:14px 12px;margin-top:8px}
 .nhap .dsn{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin:8px 0}
 .nhap .it{position:relative;border:1px solid var(--border);border-radius:10px;background:#fff;aspect-ratio:1;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:11px;text-align:center;padding:4px}
 .nhap .it img{width:100%;height:100%;object-fit:cover}
@@ -283,6 +285,7 @@ function svHien() {
   let h = '<div class="top"><div><h1>📷 Bài kiểm tra của tôi</h1><div class="sub"><b>' + esc(d.ten) + '</b> • ' + esc(d.lop) + (d.maLop ? ' (' + esc(d.maLop) + ')' : '') + (d.gv ? ' • GV: ' + esc(d.gv) : '') + '</div></div>' +
     '<button class="sec sm" onclick="dangXuat()">Thoát</button></div>';
   if (!d.baiKT.length) h += '<div class="card center note">Lớp chưa có bài kiểm tra nào trên web.</div>';
+  else if (d.baiKT.some(b => b.conNop)) h += '<div class="info">📷 Có bài đang chờ bạn nộp: bấm <b>Chụp ảnh bài làm</b> trong khung xanh bên dưới, chụp từng trang rồi bấm <b>Nộp bài</b>.</div>';
   d.baiKT.forEach((b, i) => {
     const n = b.nop;
     const hanQua = b.han && d.bayGio > b.han;
@@ -295,19 +298,21 @@ function svHien() {
       h += '<div class="big">' + diemTxt(n.diem) + '</div><div class="center kv">điểm ' + esc(b.dauDiem) + (n.chamLuc ? ' • chấm lúc ' + fmt(n.chamLuc) : '') + '</div>';
       if (n.nhanXet) h += '<div class="info">💬 Nhận xét của giảng viên: ' + esc(n.nhanXet) + '</div>';
     }
-    if (n.anh.length || n.nopLuc) {
-      h += '<div class="kv" style="margin-top:8px">Bài đã nộp' + (n.nopLuc ? ' lúc <b>' + fmt(n.nopLuc) + '</b>' + (n.nguoiTai === 'Giảng viên' ? ' (giảng viên tải lên)' : '') : '') + ':</div>';
+    if (b.daNop || n.trangThai === 'Đã chấm') {
+      // Đã có tệp nộp (hoặc đã chấm) → chỉ xem, không sửa
+      h += '<div class="kv" style="margin-top:8px">Bài đã nộp' + (n.nopLuc ? ' lúc <b>' + fmt(n.nopLuc) + '</b>' + (n.nguoiTai === 'Giảng viên' ? ' (giảng viên tải lên)' : '') : '') + (n.tep && n.tep.length ? ' – ' + n.tep.length + ' tệp' : '') + ':</div>';
       h += gridAnh(n.tep, false);
-      if (n.trangThai !== 'Đã chấm') h += '<div class="note">✅ Đã nộp. Mỗi sinh viên chỉ nộp <b>1 lần</b>, không sửa/xoá được. Nếu nộp nhầm, liên hệ giảng viên để mở lại.</div>';
+      if (n.trangThai !== 'Đã chấm') h += '<div class="note">✅ Đã nộp, đang chờ chấm. Mỗi sinh viên chỉ nộp <b>1 lần</b>, không sửa/xoá được. Nếu nộp nhầm, liên hệ giảng viên để mở lại.</div>';
     } else if (b.conNop) {
       const ds = NHAP[b.ma] || [];
-      h += '<div class="nhap"><b style="color:#115E59">📤 Nộp bài làm (chỉ được nộp 1 lần)</b>' +
-        '<div class="kv">Chụp từng trang hoặc chọn sẵn ảnh/tệp, kiểm tra lại rồi bấm "Nộp bài". Nhận ảnh, PDF, Word, Excel, PowerPoint, txt, zip; tối đa ' + b.toiDa + ' tệp, mỗi tệp ≤ ' + (b.toiDaMB || 10) + ' MB.</div>' +
+      h += '<div class="nhap"><div class="nhap-t">📤 NỘP BÀI LÀM</div>' +
+        '<div class="kv">Bấm <b>Chụp ảnh</b> để chụp từng trang bài làm (hoặc chọn ảnh/tệp có sẵn), xem lại rồi bấm <b>Nộp bài</b>. Chỉ được nộp <b>1 lần</b>. Nhận ảnh, PDF, Word, Excel, PowerPoint, txt, zip; tối đa ' + b.toiDa + ' tệp, mỗi tệp ≤ ' + (b.toiDaMB || 10) + ' MB.</div>' +
         '<input class="file" type="file" accept="image/*" capture="environment" id="fc' + i + '" onchange="svChonTep(\'' + esc(b.ma) + '\', this)">' +
         '<input class="file" type="file" accept="' + CHAP_NHAN + '" multiple id="f' + i + '" onchange="svChonTep(\'' + esc(b.ma) + '\', this)">' +
-        '<div class="row" style="margin-top:8px"><button class="ok" onclick="$(\'fc' + i + '\').click()">📷 Chụp ảnh</button><button class="sec" onclick="$(\'f' + i + '\').click()">🖼️ Chọn ảnh / tệp</button></div>' +
-        (ds.length ? '<div class="dsn">' + ds.map((f, k) => '<div class="it">' + (f._url ? '<img src="' + f._url + '" alt="">' : '<span>' + iconTep(f.type, f.name) + '<br>' + esc(f.name.length > 22 ? f.name.slice(0, 20) + '…' : f.name) + '</span>') + '<div class="nm">' + esc(f.name) + '</div><button class="x" onclick="svBoTep(\'' + esc(b.ma) + '\',' + k + ')">✕</button></div>').join('') + '</div>' +
-          '<button onclick="svNopBai(\'' + esc(b.ma) + '\',' + i + ')">📤 Nộp bài (' + ds.length + ' tệp)</button>' : '<div class="note">Chưa chọn tệp nào.</div>') +
+        '<button class="ok big-btn" onclick="$(\'fc' + i + '\').click()">📷 Chụp ảnh bài làm</button>' +
+        '<button class="sec" style="margin-top:8px" onclick="$(\'f' + i + '\').click()">🖼️ Chọn ảnh / tệp có sẵn trong máy</button>' +
+        (ds.length ? '<div class="kv" style="margin-top:10px">Đã chọn ' + ds.length + ' tệp – kiểm tra lại rồi bấm Nộp bài:</div><div class="dsn">' + ds.map((f, k) => '<div class="it">' + (f._url ? '<img src="' + f._url + '" alt="">' : '<span>' + iconTep(f.type, f.name) + '<br>' + esc(f.name.length > 22 ? f.name.slice(0, 20) + '…' : f.name) + '</span>') + '<div class="nm">' + esc(f.name) + '</div><button class="x" onclick="svBoTep(\'' + esc(b.ma) + '\',' + k + ')">✕</button></div>').join('') + '</div>' +
+          '<button class="big-btn" onclick="svNopBai(\'' + esc(b.ma) + '\',' + i + ')">📤 NỘP BÀI (' + ds.length + ' tệp)</button>' : '<div class="note">Chưa chọn tệp nào. Sau khi chụp/chọn, ảnh sẽ hiện ở đây kèm nút "Nộp bài".</div>') +
         '<div class="prog" id="p' + i + '" style="display:none"><i></i></div></div>';
     } else {
       h += '<div class="note">' + (b.trangThai !== 'Mở' ? 'Bài đã đóng.' : hanQua ? 'Đã hết hạn nộp.' : 'Bài này do giảng viên tải ảnh lên, sinh viên không tự nộp.') + '</div>';
