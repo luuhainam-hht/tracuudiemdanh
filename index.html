@@ -140,7 +140,7 @@ function hien(d) {
   if (d.soDauDiemCan) {
     const co = d.soDauDiemCo || 0, can = d.soDauDiemCan;
     if (d.camThi) {
-      h += '<div class="banner bad"><b>❌ Không đủ điều kiện dự thi</b><br>Bạn vắng quá mức cho phép. Liên hệ giảng viên phụ trách.</div>';
+      h += '<div class="banner bad"><b>❌ Không đủ điều kiện dự thi</b><br>Bạn đã vắng ' + (CFG && CFG.tinhPhep ? (d.vangP + d.vangK) + ' buổi' : 'không phép ' + d.vangK + ' buổi') + (d.nguongCamThi ? ' (môn ' + d.tongKH + ' buổi: từ ' + d.nguongCamThi + ' buổi là không đủ điều kiện dự thi)' : '') + '. Liên hệ giảng viên phụ trách.</div>';
     } else if (d.duDKThi) {
       h += '<div class="banner ok"><b>✅ Đã đủ điều kiện dự thi</b><br>Chuyên cần đạt và đã có đủ ' + co + '/' + can + ' đầu điểm kiểm tra.</div>';
     } else if (d.nhacThieuDiem) {
@@ -148,6 +148,10 @@ function hien(d) {
     } else {
       h += '<div class="banner neu"><b>📋 Điều kiện dự thi: đang theo dõi</b><br>Đã có ' + co + '/' + can + ' đầu điểm kiểm tra' + (d.ngayKetThuc ? ' – môn học kết thúc ngày ' + esc(d.ngayKetThuc) : '') + '.</div>';
     }
+  }
+  // Cảnh báo chuyên cần (đã chạm ngưỡng cảnh báo, chưa bị cấm thi)
+  if (d.trangThai === 'Cảnh báo' && d.nguongCamThi) {
+    h += '<div class="banner neu" style="border-color:#FCD34D;background:var(--warnbg);color:var(--warn)"><b>⚠️ Cảnh báo chuyên cần</b><br>Bạn đã vắng ' + (CFG && CFG.tinhPhep ? (d.vangP + d.vangK) : 'không phép ' + d.vangK) + ' buổi. Môn ' + d.tongKH + ' buổi: vắng ' + (CFG && CFG.tinhPhep ? '' : 'không phép ') + 'từ ' + d.nguongCamThi + ' buổi sẽ KHÔNG đủ điều kiện dự thi (còn được vắng ' + d.conDuocVang + ' buổi).</div>';
   }
   // Cảnh báo điểm kiểm tra dưới 5
   if (d.diem && d.diem.kt) {
@@ -158,9 +162,9 @@ function hien(d) {
   h += '<div class="big">' + pct(d.ptCC) + '</div><div class="center sub">tỷ lệ chuyên cần</div>';
   h += '<div class="center"><span class="badge ' + cls + '">' + esc(tt) + '</span></div>';
   h += '<div class="kpi"><div><b>' + d.daHoc + '</b><span>buổi đã học</span></div><div><b>' + d.coMat + '</b><span>có mặt</span></div><div><b>' + (d.vangP + d.vangK) + '</b><span>vắng (' + d.vangK + ' không phép)</span></div></div>';
-  h += '<div class="kpi" style="grid-template-columns:1fr 1fr"><div><b>' + d.conDuocVang + '</b><span>buổi còn được vắng</span></div><div><b>' + d.tongKH + '</b><span>buổi theo kế hoạch</span></div></div>';
+  h += '<div class="kpi" style="grid-template-columns:1fr 1fr"><div><b>' + d.conDuocVang + '</b><span>' + (CFG && CFG.tinhPhep ? 'buổi còn được vắng' : 'buổi còn được vắng không phép') + '</span></div><div><b>' + d.tongKH + '</b><span>buổi theo kế hoạch</span></div></div>';
   h += '<div class="chuoi">' + esc(d.chuoi) + '</div><div class="center sub">● có mặt &nbsp; ○ vắng không phép &nbsp; ◐ vắng có phép</div>';
-  h += '<div class="note">Cảnh báo khi vắng > ' + Math.round(CFG.canhBao * 100) + '%, không đủ điều kiện dự thi khi vắng > ' + Math.round(CFG.camThi * 100) + '% số buổi. Cập nhật: ' + esc(d.capNhat) + '</div>';
+  h += '<div class="note">' + (d.nguongCamThi ? 'Môn ' + d.tongKH + ' buổi: cảnh báo khi vắng không phép từ ' + d.nguongCanhBao + ' buổi, không đủ điều kiện dự thi khi vắng không phép từ ' + d.nguongCamThi + ' buổi' + (CFG && CFG.tinhPhep ? ' (nghỉ có phép cũng bị tính)' : ' (nghỉ có phép không tính)') + '. ' : '') + 'Cập nhật: ' + esc(d.capNhat) + '</div>';
   const link = location.origin + location.pathname + '?lop=' + encodeURIComponent(d.lop) + '&ten=' + encodeURIComponent(d.ten);
   h += '<div class="center" style="margin-top:8px"><a class="link" href="' + link + '">🔗 Link riêng của bạn (lưu lại để lần sau mở là thấy ngay)</a></div></div>';
   h += '<div class="card"><b>📝 Điểm kiểm tra</b>';
