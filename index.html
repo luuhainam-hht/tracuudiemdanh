@@ -39,6 +39,8 @@ th{color:var(--muted);font-weight:600;font-size:12px}
 .banner.bad{background:var(--badbg);color:var(--bad);border-color:#FCA5A5}
 .banner.neu{background:#fff;color:var(--text);border-color:var(--border)}
 .banner b{font-size:16px}
+    .gio{color:var(--ok);font-variant-numeric:tabular-nums}
+    .ls td,.ls th{white-space:nowrap;padding:8px 4px}
 </style>
 </head>
 <body>
@@ -164,6 +166,8 @@ function hien(d) {
   h += '<div class="kpi"><div><b>' + d.daHoc + '</b><span>buổi đã học</span></div><div><b>' + d.coMat + '</b><span>có mặt</span></div><div><b>' + (d.vangP + d.vangK) + '</b><span>vắng (' + d.vangK + ' không phép)</span></div></div>';
   h += '<div class="kpi" style="grid-template-columns:1fr 1fr"><div><b>' + d.conDuocVang + '</b><span>' + (CFG && CFG.tinhPhep ? 'buổi còn được vắng' : 'buổi còn được vắng không phép') + '</span></div><div><b>' + d.tongKH + '</b><span>buổi theo kế hoạch</span></div></div>';
   h += '<div class="chuoi">' + esc(d.chuoi) + '</div><div class="center sub">● có mặt &nbsp; ○ vắng không phép &nbsp; ◐ vắng có phép</div>';
+  const gan = (d.lich || []).find(x => x.gio);
+  if (gan) h += '<div class="center" style="margin-top:6px;font-size:13px">🕒 Điểm danh gần nhất: <b class="gio">' + esc(gan.gio) + '</b> ngày ' + esc(gan.ngay) + (gan.gioBu ? ' (điểm danh bù ' + esc(gan.gioBu) + ')' : '') + '</div>';
   h += '<div class="note">' + (d.nguongCamThi ? 'Môn ' + d.tongKH + ' buổi: cảnh báo khi vắng không phép từ ' + d.nguongCanhBao + ' buổi, không đủ điều kiện dự thi khi vắng không phép từ ' + d.nguongCamThi + ' buổi' + (CFG && CFG.tinhPhep ? ' (nghỉ có phép cũng bị tính)' : ' (nghỉ có phép không tính)') + '. ' : '') + 'Cập nhật: ' + esc(d.capNhat) + '</div>';
   const link = location.origin + location.pathname + '?lop=' + encodeURIComponent(d.lop) + '&ten=' + encodeURIComponent(d.ten);
   h += '<div class="center" style="margin-top:8px"><a class="link" href="' + link + '">🔗 Link riêng của bạn (lưu lại để lần sau mở là thấy ngay)</a></div></div>';
@@ -180,12 +184,13 @@ function hien(d) {
     h += '<div class="note center">Chưa có điểm kiểm tra nào được nhập.</div>';
   }
   h += '</div>';
-  h += '<div class="card"><b>Lịch sử điểm danh</b><table><tr><th>Ngày</th><th>Thứ</th><th>Trạng thái</th></tr>';
+  h += '<div class="card"><b>Lịch sử điểm danh</b><table class="ls"><tr><th>Ngày</th><th>Thứ</th><th>Trạng thái</th><th>Giờ</th></tr>';
   d.lich.forEach(x => {
     const c = x.trangThai === 'Có mặt' ? 'ok' : x.trangThai === 'Vắng có phép' ? 'warn' : 'bad';
-    h += '<tr><td>' + esc(x.ngay) + '</td><td>' + esc(x.thu) + '</td><td><span class="badge ' + c + '" style="font-size:12px;padding:3px 8px">' + esc(x.trangThai) + '</span></td></tr>';
+    const gio = x.gio ? '<b class="gio">' + esc(x.gio) + '</b>' + (x.gioBu ? '<br><span class="sub" style="font-size:11px">bù ' + esc(x.gioBu) + '</span>' : '') : (x.trangThai === 'Có mặt' ? '<span class="sub" title="Buổi này được điểm danh trước khi hệ thống ghi giờ">—</span>' : '');
+    h += '<tr><td>' + esc(x.ngay) + '</td><td>' + esc(x.thu) + '</td><td><span class="badge ' + c + '" style="font-size:12px;padding:3px 8px">' + esc(x.trangThai) + '</span></td><td>' + gio + '</td></tr>';
   });
-  h += '</table></div>';
+  h += '</table><div class="note">Giờ điểm danh = lúc giảng viên tích "có mặt" cho bạn. "—" là buổi được điểm danh trước khi hệ thống bắt đầu ghi giờ.</div></div>';
   $('kq').innerHTML = h;
   window.scrollTo({ top: $('kq').offsetTop - 8, behavior: 'smooth' });
 }
